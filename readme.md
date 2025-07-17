@@ -105,3 +105,12 @@ RAG-Prototype/
 └── .gitignore          # Specifies intentionally untracked files to ignore
 ```
 
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information. (Note: A `LICENSE` file is assumed to be present or will be added. If not, please create one in your repository.)
+
+## Contact
+
+NDarayut - [Gmail](darayutnhem009@gmail.com)
+
+Project Link: [https://github.com/NDarayut/RAG-Prototype](https://github.com/NDarayut/RAG-Prototype)
