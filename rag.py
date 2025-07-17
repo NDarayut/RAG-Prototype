@@ -1,22 +1,18 @@
 # Langchain dependencies
-from langchain.document_loaders.pdf import PyPDFDirectoryLoader # Importing PDF loader from Langchain
+
 from langchain.text_splitter import RecursiveCharacterTextSplitter # Importing text splitter from Langchain
 from langchain.schema import Document # Importing Document schema from Langchain
 from langchain.vectorstores.chroma import Chroma # Importing Chroma vector store from Langchain
 from dotenv import load_dotenv # Importing dotenv to get API key from .env file
 import google.generativeai as genai
 import os # Importing os module for operating system functionalities
-import shutil # Importing shutil module for high-level file operations
 from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.prompts import ChatPromptTemplate # Importing prompt template for chat models
 
 load_dotenv()
 
 DATA_PATH = "./data/"
 CHROMA_PATH = "chroma"
 embedding_model = HuggingFaceEmbeddings(model_name="intfloat/multilingual-e5-base")
-
-model_name = "TheBloke/Nous-Hermes-13b-GPTQ"  # Example free open model
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 gemini_model = genai.GenerativeModel("gemini-2.0-flash")
