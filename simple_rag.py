@@ -3,7 +3,7 @@
 import os
 import logging
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline, AutoModel
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
 from langchain.vectorstores.chroma import Chroma
@@ -14,9 +14,10 @@ logging.basicConfig(level=logging.INFO)
 
 use_gpu = torch.cuda.is_available()
 # model_id = "aisingapore/Llama-SEA-LION-v3.5-8B-R"
+model_id = "aisingapore/Llama-SEA-LION-v3.5-8B-R-GGUF"
 
 # # Load model and tokenizer
-# tokenizer = AutoTokenizer.from_pretrained(model_id)
+tokenizer = AutoTokenizer.from_pretrained(model_id)
 # model = AutoModelForCausalLM.from_pretrained(
 #     model_id,
 #     device_map="auto",
@@ -31,10 +32,13 @@ use_gpu = torch.cuda.is_available()
 #     device_map="auto",
 # )
 
+model = AutoModel.from_pretrained("aisingapore/Llama-SEA-LION-v3.5-8B-R-GGUF", torch_dtype="auto")
 pipeline = pipeline(
-    "text-generation", 
-    model="aisingapore/Llama-SEA-LION-v3.5-8B-R-GGUF"
-)
+     "text-generation",
+     model=model,
+     tokenizer=tokenizer,
+     device_map="auto",
+ )
 
 DATA_PATH = "./data/"
 CHROMA_PATH = "chroma"

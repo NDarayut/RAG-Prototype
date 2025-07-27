@@ -8,3 +8,4 @@ streamlit
 bitsandbytes
 transformers
 accelerate
+llama_cpp
