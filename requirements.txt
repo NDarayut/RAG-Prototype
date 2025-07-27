@@ -7,6 +7,5 @@ pypdf
 streamlit
 bitsandbytes
 transformers
-# accelerate
-# llama_cpp
-gradio
+accelerate
+sentence-transformers

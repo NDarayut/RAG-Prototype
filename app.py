@@ -1,298 +1,184 @@
-import gradio as gr
+import streamlit as st
 import os
 import shutil
 import fitz  # PyMuPDF
-from simple_rag import generate_data_store, ask_question, DATA_PATH, CHROMA_PATH
-import tempfile
-from typing import List, Tuple, Optional
+from SEALION_RAG import generate_data_store, ask_question, DATA_PATH, CHROMA_PATH  # <- Added CHROMA_PATH
 
-# Global variables to store chat history and processed files
-chat_history = []
-uploaded_files_info = []
+# --- Page Configuration ---
+st.set_page_config(page_title="DocChat", layout="wide")
 
-def clear_vector_store():
-    """Clear the Chroma vector store"""
-    try:
-        if os.path.exists(CHROMA_PATH):
-            shutil.rmtree(CHROMA_PATH)
-            return "✅ Vector store cleared successfully."
-        else:
-            return "ℹ️ No vector store found to clear."
-    except Exception as e:
-        return f"❌ Failed to clear vector store: {e}"
+# --- DARK MODE STYLING ---
+st.markdown("""
+    <style>
+    body { background-color: var(--background-color); }
+    .stChatBubble {
+        padding: 0.8rem 1rem;
+        border-radius: 0.6rem;
+        margin-bottom: 1rem;
+    }
+    .user {
+        background-color: var(--primary-color-bg);
+        border-left: 4px solid #4285F4;
+    }
+    .bot {
+        background-color: var(--secondary-color-bg);
+        border-left: 4px solid #34A853;
+    }
+    .context {
+        font-size: 0.9rem;
+        color: var(--text-color);
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-def process_uploaded_files(files):
-    """Process uploaded PDF files and generate vector store"""
-    global uploaded_files_info
-    
-    if not files:
-        return "⚠️ No files uploaded.", ""
-    
-    # Clear existing data
-    if os.path.exists(DATA_PATH):
-        shutil.rmtree(DATA_PATH)
-    os.makedirs(DATA_PATH, exist_ok=True)
-    
-    uploaded_files_info = []
-    file_info_text = "📂 **Uploaded Files:**\n\n"
-    
-    try:
-        for file in files:
-            if file is None:
-                continue
-                
-            # Copy file to data directory
-            file_name = os.path.basename(file.name)
-            file_path = os.path.join(DATA_PATH, file_name)
-            shutil.copy2(file.name, file_path)
-            
-            uploaded_files_info.append({
-                'name': file_name,
-                'path': file_path
-            })
-            
-            file_info_text += f"- 📄 `{file_name}`\n"
-        
-        # Generate vector store
-        generate_data_store()
-        
-        status_msg = f"✅ Successfully processed {len(uploaded_files_info)} file(s) and generated vector store!"
-        
-        return status_msg, file_info_text
-        
-    except Exception as e:
-        return f"❌ Error processing files: {e}", ""
+# --- Set up state ---
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+if "dark_mode" not in st.session_state:
+    st.session_state.dark_mode = False
 
-def get_pdf_preview(file_path: str, max_pages: int = 2) -> List[any]:
-    """Generate preview images from PDF"""
-    try:
-        doc = fitz.open(file_path)
+# --- Sidebar: Settings + Clear Vector Store ---
+with st.sidebar:
+    st.title("⚙️ Settings")
+    st.session_state.dark_mode = st.toggle("🌑 Dark Mode", value=st.session_state.dark_mode)
+
+    # Set CSS vars
+    if st.session_state.dark_mode:
+        st.markdown("""
+            <style>
+            :root {
+                --background-color: #111827;
+                --text-color: #f3f4f6;
+                --primary-color-bg: #1e293b;
+                --secondary-color-bg: #334155;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+            <style>
+            :root {
+                --background-color: #ffffff;
+                --text-color: #1f2937;
+                --primary-color-bg: #e0f2fe;
+                --secondary-color-bg: #f3f4f6;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+
+    # --- Clear Chroma Vector Store Option ---
+    if st.button("🗑️ Clear Vector Store"):
+        try:
+            if os.path.exists(CHROMA_PATH):
+                shutil.rmtree(CHROMA_PATH)
+                st.success("✅ Vector store cleared.")
+            else:
+                st.info("ℹ️ No vector store found.")
+        except Exception as e:
+            st.error(f"❌ Failed to clear vector store: {e}")
+
+# --- Title ---
+st.title("💬 DocChat – Ask Anything From Your PDFs")
+
+# --- File Upload Sidebar ---
+with st.sidebar:
+    st.subheader("📂 Uploaded PDFs")
+    uploaded_files = st.file_uploader(
+        "Upload PDF files", type=["pdf"], accept_multiple_files=True
+    )
+
+    def render_pdf_preview(pdf_path, highlights=None, max_pages=3):
+        doc = fitz.open(pdf_path)
         images = []
-        
+
         for page_num in range(min(len(doc), max_pages)):
             page = doc.load_page(page_num)
-            # Render page as image
-            pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5))  # 1.5x scale
+
+            if highlights:
+                for h in highlights:
+                    if h["filename"] == os.path.basename(pdf_path) and h["page"] == page_num + 1:
+                        areas = page.search_for(h["text"], hit_max=5)
+                        for rect in areas:
+                            page.draw_rect(rect, color=(1, 1, 0), fill=(1, 1, 0), overlay=True)
+
+            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
             img_bytes = pix.tobytes("png")
-            
-            # Save to temporary file for Gradio
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
-            temp_file.write(img_bytes)
-            temp_file.close()
-            images.append(temp_file.name)
-        
+            images.append(img_bytes)
+
         doc.close()
         return images
-    except Exception as e:
-        print(f"Error generating PDF preview: {e}")
-        return []
 
-def chat_with_docs(message: str, history: Optional[List] = None) -> Tuple[str, List]:
-    """Handle chat interactions with documents"""
-    global chat_history
-    
-    if not message.strip():
-        return "", history or []
-    
-    if not uploaded_files_info:
-        response = "⚠️ Please upload and process PDF files first before asking questions."
-        if history is None:
-            history = []
-        history.append([message, response])
-        return "", history
-    
-    try:
-        # Get answer from RAG system
-        answer, context_chunks = ask_question(message)
-        
-        # Format response with context
-        response = f"**Answer:** {answer}\n\n"
-        
-        if context_chunks:
-            response += "**📖 Sources:**\n"
-            for i, chunk in enumerate(context_chunks, 1):
-                response += f"\n{i}. **{chunk['filename']}** (Page {chunk['page']})\n"
-                response += f"```\n{chunk['text'][:200]}{'...' if len(chunk['text']) > 200 else ''}\n```\n"
-        
-        # Add to chat history
-        chat_history.append({
-            "question": message,
-            "answer": answer,
-            "context": context_chunks
-        })
-        
-        # Update Gradio chat history
-        if history is None:
-            history = []
-        history.append([message, response])
-        
-        return "", history
-        
-    except Exception as e:
-        error_msg = f"❌ Error processing question: {e}"
-        if history is None:
-            history = []
-        history.append([message, error_msg])
-        return "", history
+    if uploaded_files:
+        if os.path.exists(DATA_PATH):
+            shutil.rmtree(DATA_PATH)
+        os.makedirs(DATA_PATH, exist_ok=True)
 
-def clear_chat():
-    """Clear chat history"""
-    global chat_history
-    chat_history = []
-    return []
+        file_names = []
+        for uploaded_file in uploaded_files:
+            file_path = os.path.join(DATA_PATH, uploaded_file.name)
+            file_names.append(uploaded_file.name)
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.read())
 
-def show_file_previews():
-    """Generate file preview gallery"""
-    if not uploaded_files_info:
-        return []
-    
-    preview_images = []
-    for file_info in uploaded_files_info:
-        images = get_pdf_preview(file_info['path'], max_pages=2)
-        preview_images.extend(images)
-    
-    return preview_images
+        st.success(f"Uploaded {len(uploaded_files)} file(s).")
 
-# Create Gradio interface
-def create_interface():
-    with gr.Blocks(
-        title="DocChat - PDF Question Answering",
-        theme=gr.themes.Soft(),
-        css="""
-        .gradio-container {
-            max-width: 1200px !important;
-        }
-        .chat-container {
-            height: 500px;
-        }
-        """
-    ) as demo:
-        
-        gr.Markdown(
-            """
-            # 💬 DocChat – Ask Anything From Your PDFs
-            
-            Upload your PDF documents and ask questions about their content using advanced RAG (Retrieval-Augmented Generation) technology.
-            """
-        )
-        
-        with gr.Tab("📂 Upload & Process"):
-            with gr.Row():
-                with gr.Column(scale=2):
-                    file_upload = gr.File(
-                        label="Upload PDF Files",
-                        file_count="multiple",
-                        file_types=[".pdf"],
-                        height=150
-                    )
-                    
-                    process_btn = gr.Button("⚡ Process Files & Generate Vector Store", variant="primary")
-                    
-                    status_output = gr.Textbox(
-                        label="Status",
-                        interactive=False,
-                        lines=2
-                    )
-                
-                with gr.Column(scale=1):
-                    files_info = gr.Markdown("No files uploaded yet.")
-                    
-                    clear_vector_btn = gr.Button("🗑️ Clear Vector Store", variant="secondary")
-                    clear_status = gr.Textbox(label="Clear Status", interactive=False, lines=1)
-            
-            # File previews
-            with gr.Row():
-                preview_gallery = gr.Gallery(
-                    label="📖 PDF Previews (First 2 pages of each file)",
-                    show_label=True,
-                    elem_id="preview_gallery",
-                    columns=3,
-                    rows=2,
-                    height="auto"
-                )
-        
-        with gr.Tab("💬 Chat"):
-            with gr.Row():
-                chatbot = gr.Chatbot(
-                    label="Chat with your documents",
-                    height=400,
-                    elem_classes=["chat-container"]
-                )
-            
-            with gr.Row():
-                with gr.Column(scale=4):
-                    msg = gr.Textbox(
-                        label="Ask a question",
-                        placeholder="e.g., What is the main conclusion of the document?",
-                        lines=2
-                    )
-                with gr.Column(scale=1):
-                    submit_btn = gr.Button("🚀 Ask", variant="primary")
-                    clear_chat_btn = gr.Button("🗑️ Clear Chat", variant="secondary")
-        
-        with gr.Tab("ℹ️ Instructions"):
-            gr.Markdown(
-                """
-                ## How to use DocChat:
-                
-                1. **Upload PDFs**: Go to the "Upload & Process" tab and select your PDF files
-                2. **Process Files**: Click "Process Files & Generate Vector Store" to index your documents
-                3. **Ask Questions**: Switch to the "Chat" tab and start asking questions about your documents
-                4. **View Sources**: Each answer includes the source passages from your PDFs
-                
-                ## Features:
-                - 📄 **Multi-PDF Support**: Upload and query multiple documents at once
-                - 🔍 **Semantic Search**: Find relevant information even with different wording
-                - 📖 **Source Citations**: See exactly which parts of your documents were used to generate answers
-                - 🖼️ **PDF Previews**: Visual preview of your uploaded documents
-                - 💾 **Vector Store Management**: Clear and rebuild your document index as needed
-                
-                ## Tips:
-                - Ask specific questions for better results
-                - Try rephrasing questions if you don't get the expected answer
-                - Check the source citations to verify the information
-                """
-            )
-        
-        # Event handlers
-        process_btn.click(
-            fn=process_uploaded_files,
-            inputs=[file_upload],
-            outputs=[status_output, files_info]
-        ).then(
-            fn=show_file_previews,
-            outputs=[preview_gallery]
-        )
-        
-        clear_vector_btn.click(
-            fn=clear_vector_store,
-            outputs=[clear_status]
-        )
-        
-        submit_btn.click(
-            fn=chat_with_docs,
-            inputs=[msg, chatbot],
-            outputs=[msg, chatbot]
-        )
-        
-        msg.submit(
-            fn=chat_with_docs,
-            inputs=[msg, chatbot],
-            outputs=[msg, chatbot]
-        )
-        
-        clear_chat_btn.click(
-            fn=clear_chat,
-            outputs=[chatbot]
-        )
-    
-    return demo
+        if st.button("⚡ Generate Vector Store"):
+            with st.spinner("Processing and indexing..."):
+                generate_data_store()
+            st.success("✅ Knowledge base ready!")
 
-# Launch the app
-if __name__ == "__main__":
-    demo = create_interface()
-    demo.launch(
-        server_name="0.0.0.0",
-        server_port=7860,
-        share=True
-    )
+        st.markdown("### 🧾 File Manager")
+        for name in file_names:
+            st.markdown(f"- 📄 `{name}`")
+            with st.expander("🖼 Preview Pages"):
+                file_path = os.path.join(DATA_PATH, name)
+
+                file_highlights = []
+                for chat in st.session_state.chat_history:
+                    for chunk in chat["context"]:
+                        if chunk["filename"] == name:
+                            file_highlights.append(chunk)
+
+                images = render_pdf_preview(file_path, highlights=file_highlights)
+
+                for img in images:
+                    st.image(img, use_container_width=True)
+
+# --- Main Chat Section ---
+st.markdown("### 🧠 Ask Your Question")
+query = st.text_input("Type your question here...", placeholder="e.g. What is the conclusion of the document?")
+
+col1, col2 = st.columns([1, 1])
+
+with col1:
+    if st.button("🚀 Get Answer"):
+        if not query.strip():
+            st.warning("Please enter a question.")
+        else:
+            with st.spinner("Thinking..."):
+                answer, context_chunks = ask_question(query)
+
+            st.session_state.chat_history.append({
+                "question": query,
+                "answer": answer,
+                "context": context_chunks
+            })
+
+with col2:
+    if st.button("🗑️ Clear Chat"):
+        st.session_state.chat_history = []
+
+# --- Display Chat History ---
+if st.session_state.chat_history:
+    st.markdown("### 🗂️ Chat History")
+    for chat in reversed(st.session_state.chat_history):
+        st.markdown(f'<div class="stChatBubble user"><b>Q:</b> {chat["question"]}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="stChatBubble bot"><b>A:</b> {chat["answer"]}</div>', unsafe_allow_html=True)
+        with st.expander("🧾 View Context Used"):
+            for chunk in chat["context"]:
+                st.markdown(f"""
+                <div style="background-color: #fef9c3; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                    <b>📄 {chunk['filename']} – Page {chunk['page']}</b>
+                    <pre style="white-space: pre-wrap;">{chunk['text']}</pre>
+                </div>
+                """, unsafe_allow_html=True)

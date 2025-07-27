@@ -19,17 +19,16 @@ model_id = "aisingapore/Llama-SEA-LION-v3.5-8B-R"
 # # Load model and tokenizer
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 model = AutoModelForCausalLM.from_pretrained(
-     model_id,
-     device_map="auto",
-     load_in_8bit=True,          # Enable 8-bit quantization
-     torch_dtype=torch.float16,
+    model_id,
+    load_in_8bit=True,
+    device_map={"": "cpu"},  # Force CPU
+    llm_int8_enable_fp32_cpu_offload=True,  # Enable CPU offloading
 )
 
 pipeline = pipeline(
-     "text-generation",
-     model=model,
-     tokenizer=tokenizer,
-     device_map="auto",
+    "text-generation",
+    model=model,
+    tokenizer=tokenizer,
 )
 
 DATA_PATH = "./data/"
