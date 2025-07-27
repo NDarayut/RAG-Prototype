@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import shutil
 import fitz  # PyMuPDF
-from loan_rag import generate_data_store, ask_question, DATA_PATH
+from loan_rag import generate_data_store, ask_question, DATA_PATH, CHROMA_PATH  # <- Added CHROMA_PATH
 
 # --- Page Configuration ---
 st.set_page_config(page_title="DocChat", layout="wide")
@@ -37,7 +37,7 @@ if "chat_history" not in st.session_state:
 if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = False
 
-# --- Dark Mode Toggle ---
+# --- Sidebar: Settings + Clear Vector Store ---
 with st.sidebar:
     st.title("⚙️ Settings")
     st.session_state.dark_mode = st.toggle("🌑 Dark Mode", value=st.session_state.dark_mode)
@@ -66,6 +66,17 @@ with st.sidebar:
             </style>
         """, unsafe_allow_html=True)
 
+    # --- Clear Chroma Vector Store Option ---
+    if st.button("🗑️ Clear Vector Store"):
+        try:
+            if os.path.exists(CHROMA_PATH):
+                shutil.rmtree(CHROMA_PATH)
+                st.success("✅ Vector store cleared.")
+            else:
+                st.info("ℹ️ No vector store found.")
+        except Exception as e:
+            st.error(f"❌ Failed to clear vector store: {e}")
+
 # --- Title ---
 st.title("💬 DocChat – Ask Anything From Your PDFs")
 
@@ -84,20 +95,18 @@ with st.sidebar:
             page = doc.load_page(page_num)
 
             if highlights:
-                # Filter highlights relevant to this file and page
                 for h in highlights:
                     if h["filename"] == os.path.basename(pdf_path) and h["page"] == page_num + 1:
                         areas = page.search_for(h["text"], hit_max=5)
                         for rect in areas:
-                            page.draw_rect(rect, color=(1, 1, 0), fill=(1, 1, 0), overlay=True)  # yellow highlight
+                            page.draw_rect(rect, color=(1, 1, 0), fill=(1, 1, 0), overlay=True)
 
-            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # Better resolution
+            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
             img_bytes = pix.tobytes("png")
             images.append(img_bytes)
 
         doc.close()
         return images
-
 
     if uploaded_files:
         if os.path.exists(DATA_PATH):
@@ -122,10 +131,8 @@ with st.sidebar:
         for name in file_names:
             st.markdown(f"- 📄 `{name}`")
             with st.expander("🖼 Preview Pages"):
-                # Inside for name in file_names:
                 file_path = os.path.join(DATA_PATH, name)
 
-                # Only use highlights relevant to this file
                 file_highlights = []
                 for chat in st.session_state.chat_history:
                     for chunk in chat["context"]:
@@ -134,11 +141,8 @@ with st.sidebar:
 
                 images = render_pdf_preview(file_path, highlights=file_highlights)
 
-
                 for img in images:
                     st.image(img, use_container_width=True)
-            
-    
 
 # --- Main Chat Section ---
 st.markdown("### 🧠 Ask Your Question")
@@ -154,11 +158,10 @@ with col1:
             with st.spinner("Thinking..."):
                 answer, context_chunks = ask_question(query)
 
-
             st.session_state.chat_history.append({
                 "question": query,
                 "answer": answer,
-                "context": context_chunks  # <-- List of dicts with filename, page, text
+                "context": context_chunks
             })
 
 with col2:
