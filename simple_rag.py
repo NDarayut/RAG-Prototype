@@ -21,16 +21,16 @@ model_id = "aisingapore/Llama-SEA-LION-v3.5-8B-R"
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 model = AutoModelForCausalLM.from_pretrained(
     model_id,
-    device_map="auto" if use_gpu else None,
-    load_in_8bit=use_gpu,
-    torch_dtype=torch.float16 if use_gpu else torch.float32
+    device_map="auto",
+    load_in_8bit=True,          # Enable 8-bit quantization
+    torch_dtype=torch.float16,
 )
 
 pipeline = pipeline(
     "text-generation",
     model=model,
     tokenizer=tokenizer,
-    device=0 if use_gpu else -1
+    device_map="auto",
 )
 
 DATA_PATH = "./data/"
