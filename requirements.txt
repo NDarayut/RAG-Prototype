@@ -11,3 +11,4 @@ chromadb
 pypdf
 streamlit
 bitsandbytes
+transformers
