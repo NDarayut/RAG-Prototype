@@ -114,5 +114,3 @@ Distributed under the MIT License. See `LICENSE` for more information. (Note: A 
 ## Contact
 
 NDarayut - [Gmail](darayutnhem009@gmail.com)
-
-Project Link: [https://github.com/NDarayut/RAG-Prototype](https://github.com/NDarayut/RAG-Prototype)
