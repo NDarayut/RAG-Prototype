@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import shutil
 import fitz  # PyMuPDF
-from loan_rag import generate_data_store, ask_question, DATA_PATH, CHROMA_PATH  # <- Added CHROMA_PATH
+from simple_rag import generate_data_store, ask_question, DATA_PATH, CHROMA_PATH  # <- Added CHROMA_PATH
 
 # --- Page Configuration ---
 st.set_page_config(page_title="DocChat", layout="wide")
