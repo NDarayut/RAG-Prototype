@@ -13,17 +13,33 @@ from langchain.document_loaders import PyPDFDirectoryLoader
 logging.basicConfig(level=logging.INFO)
 
 use_gpu = torch.cuda.is_available()
+
+if use_gpu:
+    print("CUDA device in use:", torch.cuda.get_device_name(0))
+else:
+    print("Running on CPU. No GPU detected.")
+
 model_id = "aisingapore/Llama-SEA-LION-v3.5-8B-R"
 
 
 # # Load model and tokenizer
 tokenizer = AutoTokenizer.from_pretrained(model_id)
-model = AutoModelForCausalLM.from_pretrained(
-    model_id,
-    load_in_8bit=True,
-    device_map={"": "cpu"},  # Force CPU
-    llm_int8_enable_fp32_cpu_offload=True,  # Enable CPU offloading
-)
+
+if use_gpu:
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        device_map="auto",
+        load_in_8bit=True,
+        torch_dtype=torch.float16,
+    )
+else:
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        load_in_8bit=True,
+        device_map={"": "cpu"},  # Force CPU
+        llm_int8_enable_fp32_cpu_offload=True,  # Enable CPU offloading
+    )
+    
 
 pipeline = pipeline(
     "text-generation",
