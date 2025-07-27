@@ -25,7 +25,7 @@
 
 This repository hosts a prototype of a Retrieval-Augmented Generation (RAG) application. The primary goal of this project is to demonstrate how to build a system that allows users to interact with their documents by asking questions and receiving answers grounded in the content of those documents.
 
-The application enables users to upload various file types, processes them into manageable chunks, embeds these chunks, and stores them in a vector database. When a user asks a question, the system retrieves the most relevant chunks from the stored data and uses a Large Language Model (LLM) to generate a coherent and contextually accurate answer. It also provides transparency by displaying the top retrieved chunks that informed the answer.
+The application enables users to upload various file types, processes them into manageable chunks, embeds these chunks, and stores them in a vector database. When a user asks a question, the system retrieves the most relevant chunks from the stored data and uses a Large Language Model (LLM) — specifically **SEALION V 3.5 8B** — to generate a coherent and contextually accurate answer. It also provides transparency by displaying the top retrieved chunks that informed the answer.
 
 ## Features
 
@@ -34,16 +34,18 @@ The application enables users to upload various file types, processes them into 
 * **Contextual Answers:** Generates answers grounded in the content of the uploaded documents.
 * **Top Chunk Display:** Shows the top 3 most relevant retrieved chunks to provide transparency and allow users to verify the source of the answer.
 * **Vector Database Integration:** Utilizes ChromaDB for efficient storage and retrieval of document embeddings.
-* **Modular Design:** Separates core RAG logic (`rag.py`) from the application interface (`app.py`).
+* **Modular Design:** Separates core RAG logic (`SEALION_RAG.py`) from the application interface (`app.py`).
+* **Local LLM Support:** Uses **SEALION V 3.5 8B**, an open-weight LLM, for offline and customizable deployment.
 
 ## Technologies Used
 
 * **Python:** The core programming language for the application logic.
 * **ChromaDB:** An open-source embedding database for storing and querying vector embeddings.
 * **LangChain (Inferred):** Likely used for orchestrating the RAG pipeline (chunking, embedding, retrieval, LLM integration).
-* **Streamlit / Flask / FastAPI (Inferred from `app.py`):** A web framework for building the user interface.
-* **Large Language Models (LLMs):** Integrated for generating answers based on retrieved context (specific model not specified in repo).
-* **Hugging Face Transformers (Inferred):** For embeddings and potentially local LLMs.
+* **Streamlit (Inferred from `app.py`):** A framework for building the user interface.
+* **Large Language Model (LLM):** **SEALION V 3.5 8B** is used to generate context-aware answers.
+* **Hugging Face Transformers (Inferred):** For managing embeddings and integrating local LLMs.
+
 
 ## Getting Started
 
@@ -51,7 +53,7 @@ To get a local copy up and running, follow these simple steps.
 
 ### Prerequisites
 
-* Python 3.8+
+* Python 3.11+
 * `pip` (Python package installer)
 
 ### Installation
@@ -100,7 +102,7 @@ RAG-Prototype/
 ├── chroma/             # Directory for ChromaDB persistent storage
 ├── data/               # Placeholder for uploaded or processed data
 ├── app.py              # Main application file (likely Streamlit/Flask/FastAPI UI)
-├── rag.py              # Core RAG logic (chunking, embedding, retrieval, generation)
+├── SEALION_RAG.py              # Core RAG logic (chunking, embedding, retrieval, generation)
 ├── requirements.txt    # List of Python dependencies
 └── .gitignore          # Specifies intentionally untracked files to ignore
 ```

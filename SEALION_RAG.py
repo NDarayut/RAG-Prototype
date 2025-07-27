@@ -41,7 +41,7 @@ You are a helpful assistant.
 Answer the question based ONLY on the context below.
 If the user asks in Khmer, respond in Khmer.
 If the user asks in English, respond in English.
-Use clear, concise sentences. Do not mention the existence of context.
+Use clear, concise sentences, no more than 50 words. Do not mention the existence of context.
 
 Context:
 {context}
@@ -111,7 +111,7 @@ def ask_question(query_text: str, k: int = 3):
 
     output = pipeline(
         prompt,
-        max_new_tokens=1024,
+        max_new_tokens=128,
         return_full_text=False,
         truncation=True,
         do_sample=False,
