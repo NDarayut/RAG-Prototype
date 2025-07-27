@@ -117,4 +117,5 @@ data/
 
 chroma/
 
-Llama-SEA-LION-v3.5-8B-R-Q3_K_M.gguf
+GEMINI_RAG.py
+SEALION_RAG.py
