@@ -1,14 +1,10 @@
-flask
-sentence-transformers
-scikit-learn
 python-docx
 PyMuPDF
-google-generativeai
 langchain
 langchain-community
-openai
 chromadb
 pypdf
 streamlit
 bitsandbytes
 transformers
+accelerate

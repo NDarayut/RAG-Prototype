@@ -1,7 +1,6 @@
 # Modified RAG Pipeline for General Document Q&A (Khmer & English)
 
 import os
-import re
 import logging
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
@@ -10,7 +9,6 @@ from langchain.schema import Document
 from langchain.vectorstores.chroma import Chroma
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.document_loaders import PyPDFDirectoryLoader
-import json
 
 logging.basicConfig(level=logging.INFO)
 
