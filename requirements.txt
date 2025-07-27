@@ -7,5 +7,5 @@ pypdf
 streamlit
 bitsandbytes
 transformers
-accelerate
-llama_cpp
+# accelerate
+# llama_cpp
