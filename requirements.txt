@@ -10,3 +10,4 @@ openai
 chromadb
 pypdf
 streamlit
+bitsandbytes
