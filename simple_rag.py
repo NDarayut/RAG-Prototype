@@ -13,22 +13,27 @@ from langchain.document_loaders import PyPDFDirectoryLoader
 logging.basicConfig(level=logging.INFO)
 
 use_gpu = torch.cuda.is_available()
-model_id = "aisingapore/Llama-SEA-LION-v3.5-8B-R"
+# model_id = "aisingapore/Llama-SEA-LION-v3.5-8B-R"
 
-# Load model and tokenizer
-tokenizer = AutoTokenizer.from_pretrained(model_id)
-model = AutoModelForCausalLM.from_pretrained(
-    model_id,
-    device_map="auto",
-    load_in_8bit=True,          # Enable 8-bit quantization
-    torch_dtype=torch.float16,
-)
+# # Load model and tokenizer
+# tokenizer = AutoTokenizer.from_pretrained(model_id)
+# model = AutoModelForCausalLM.from_pretrained(
+#     model_id,
+#     device_map="auto",
+#     load_in_8bit=True,          # Enable 8-bit quantization
+#     torch_dtype=torch.float16,
+# )
+
+# pipeline = pipeline(
+#     "text-generation",
+#     model=model,
+#     tokenizer=tokenizer,
+#     device_map="auto",
+# )
 
 pipeline = pipeline(
-    "text-generation",
-    model=model,
-    tokenizer=tokenizer,
-    device_map="auto",
+    "text-generation", 
+    model="aisingapore/Llama-SEA-LION-v3.5-8B-R-GGUF"
 )
 
 DATA_PATH = "./data/"
