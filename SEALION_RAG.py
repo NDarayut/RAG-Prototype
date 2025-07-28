@@ -35,9 +35,8 @@ if use_gpu:
 else:
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
-        load_in_8bit=True,
-        device_map={"": "cpu"},  # Force CPU
-        llm_int8_enable_fp32_cpu_offload=True,  # Enable CPU offloading
+        device_map="cpu",  # Force CPU
+        torch_dtype=torch.float32,
     )
     
 
